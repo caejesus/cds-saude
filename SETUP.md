@@ -1,7 +1,7 @@
-# CDS Gestão em Saúde — Setup v2 (núcleo + odonto + estética)
+# CDS Gestão em Saúde: Setup v3 (uma instalação por clínica)
 
-Produto próprio da Caetano Digital Systems. SaaS multi-tenant: uma base única para
-clínicas, com módulos que ligam conforme o tipo da clínica.
+Produto próprio da Caetano Digital Systems. Um código só; cada clínica recebe o próprio
+banco, endereço, nome, logo e cores (veja INSTALACAO.md). Os módulos ligam conforme o tipo.
 
 Stack: Next.js (App Router) · Supabase · TypeScript · Tailwind · Vercel
 Identidade: vinho — `#2D0A1E` escuro · `#7D1635` ação · `#C07090` médio · `#FBF3F6` fundo
@@ -44,7 +44,10 @@ EVOLUTION_API_KEY=
 
 Supabase: Settings → API. Projeto da conta `sistemadigitalclinica@gmail.com`.
 
-## Passo 3 — SQL (Supabase → SQL Editor → colar tudo → Run)
+## Passo 3: SQL
+
+> O arquivo oficial agora é `supabase/schema.sql` (sem autocadastro, com `instalar_clinica`).
+> O bloco abaixo é a versão antiga, mantida só como referência.
 
 ```sql
 create extension if not exists "uuid-ossp";
@@ -388,6 +391,10 @@ Sprint 1 — base funcionando:
 Ao terminar, rode npm run build, corrija os erros e me diga o que testar.
 ```
 
+## Instalar uma clínica nova
+
+Veja o **INSTALACAO.md**. O schema oficial está em `supabase/schema.sql`.
+
 ## Próximos sprints
 
 - **Sprint 2 — Agenda e clientes:** agenda semanal por profissional, cadastro de cliente
@@ -403,7 +410,8 @@ Ao terminar, rode npm run build, corrija os erros e me diga o que testar.
 - [ ] `.env.local` preenchido
 - [ ] SQL rodado sem erro
 - [ ] Bucket `fotos` privado criado
-- [ ] Cadastro cria clínica + admin
+- [ ] Cadastro público desligado no Supabase (Allow new users to sign up = OFF)
+- [ ] Clínica de teste instalada com instalar_clinica
 - [ ] Login redireciona para /dashboard
 - [ ] Menu muda conforme o tipo da clínica
 - [ ] Teste de isolamento: duas contas de clínicas diferentes não veem dados uma da outra

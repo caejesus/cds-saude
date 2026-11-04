@@ -1,8 +1,12 @@
 "use client";
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { marca } from "@/lib/marca";
+
+const SUPORTE = marca.whatsappSuporte
+  ? `https://wa.me/${marca.whatsappSuporte}?text=${encodeURIComponent(`Olá! Preciso de ajuda com o acesso ao sistema ${marca.nome}.`)}`
+  : "";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -40,12 +44,14 @@ export default function LoginPage() {
       <button className="botao w-full" disabled={carregando}>
         {carregando ? "Entrando..." : "Entrar"}
       </button>
-      <p className="text-center text-sm text-vinho-muted">
-        Ainda não tem conta?{" "}
-        <Link href="/cadastro" className="font-medium text-vinho-acao hover:underline">
-          Cadastre sua clínica
-        </Link>
-      </p>
+      {SUPORTE && (
+        <p className="text-center text-sm text-vinho-muted">
+          Problemas para entrar?{" "}
+          <a href={SUPORTE} target="_blank" rel="noopener noreferrer" className="font-medium text-vinho-acao hover:underline">
+            Fale com o suporte
+          </a>
+        </p>
+      )}
     </form>
   );
 }

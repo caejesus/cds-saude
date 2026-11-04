@@ -83,6 +83,7 @@ export interface Agendamento {
   status: StatusAgendamento;
   observacoes: string | null;
   lembrete_enviado: boolean;
+  pacote_cliente_id: string | null;
 }
 
 export interface Lancamento {
@@ -97,7 +98,11 @@ export interface Lancamento {
   status: "pendente" | "pago" | "cancelado";
   cliente_id: string | null;
   agendamento_id: string | null;
+  categoria: string | null;
+  criado_em: string;
 }
+
+export type FormaPagamento = NonNullable<Lancamento["forma_pagamento"]>;
 
 export interface PacoteCliente {
   id: string;
@@ -118,4 +123,42 @@ export interface PlanoTratamento {
   status: "orcamento" | "aprovado" | "em_andamento" | "concluido" | "recusado";
   desconto: number;
   observacoes: string | null;
+}
+
+export interface Pacote {
+  id: string;
+  clinica_id: string;
+  procedimento_id: string | null;
+  nome: string;
+  qtd_sessoes: number;
+  valor: number;
+  validade_dias: number;
+  ativo: boolean;
+}
+
+export interface FotoEvolucao {
+  id: string;
+  cliente_id: string;
+  agendamento_id: string | null;
+  storage_path: string;
+  regiao: string | null;
+  momento: "antes" | "durante" | "depois" | null;
+  criado_em: string;
+}
+
+export interface TermoConsentimento {
+  id: string;
+  clinica_id: string;
+  cliente_id: string;
+  procedimento_id: string | null;
+  texto: string;
+  aceito_em: string | null;
+  assinatura_url: string | null;
+  assinatura_png: string | null;
+  assinado_via: "presencial" | "link" | null;
+  assinado_ip: string | null;
+  assinado_user_agent: string | null;
+  token: string;
+  token_expira_em: string;
+  criado_em: string;
 }

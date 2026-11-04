@@ -1,18 +1,9 @@
-import { format, startOfDay, endOfDay, startOfMonth } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { AlertCircle, CalendarCheck, Users, Wallet } from "lucide-react";
 import { getContexto } from "@/lib/contexto";
 import { brl } from "@/lib/formato";
+import { agora as agoraLocal, fmt, hojeISO, limitesDoDia } from "@/lib/tempo";
+import { StatusBadge } from "@/components/StatusBadge";
 import type { StatusAgendamento } from "@/types/database";
-
-const STATUS: Record<StatusAgendamento, { rotulo: string; cor: string }> = {
-  agendado: { rotulo: "Agendado", cor: "bg-amber-50 text-amber-800" },
-  confirmado: { rotulo: "Confirmado", cor: "bg-green-50 text-green-800" },
-  em_atendimento: { rotulo: "Em atendimento", cor: "bg-blue-50 text-blue-800" },
-  concluido: { rotulo: "Concluído", cor: "bg-gray-100 text-gray-700" },
-  faltou: { rotulo: "Faltou", cor: "bg-red-50 text-red-800" },
-  cancelado: { rotulo: "Cancelado", cor: "bg-gray-100 text-gray-500 line-through" },
-};
 
 type AgendaHoje = {
   id: string;
@@ -25,15 +16,17 @@ type AgendaHoje = {
 
 export default async function DashboardPage() {
   const { supabase, usuario } = await getContexto();
-  const agora = new Date();
-  const hojeISO = format(agora, "yyyy-MM-dd");
+  const agora = agoraLocal();
+  const hoje = hojeISO();
+  const dia = limitesDoDia(hoje);
+  const inicioMes = hoje.slice(0, 8) + "01";
 
   const [consultas, clientes, recebidos, vencidos] = await Promise.all([
     supabase
       .from("agendamentos")
       .select("id, inicio, status, clientes(nome), profissionais(nome), procedimentos(nome)")
-      .gte("inicio", startOfDay(agora).toISOString())
-      .lte("inicio", endOfDay(agora).toISOString())
+      .gte("inicio", dia.inicio)
+      .lt("inicio", dia.fim)
       .neq("status", "cancelado")
       .order("inicio")
       .returns<AgendaHoje[]>(),
@@ -43,13 +36,13 @@ export default async function DashboardPage() {
       .select("valor")
       .eq("tipo", "entrada")
       .eq("status", "pago")
-      .gte("pago_em", format(startOfMonth(agora), "yyyy-MM-dd")),
+      .gte("pago_em", inicioMes),
     supabase
       .from("lancamentos")
       .select("valor")
       .eq("tipo", "entrada")
       .eq("status", "pendente")
-      .lt("vencimento", hojeISO),
+      .lt("vencimento", hoje),
   ]);
 
   const soma = (linhas: { valor: number }[] | null) =>
@@ -73,7 +66,7 @@ export default async function DashboardPage() {
           {saudacao}, {primeiroNome}
         </h1>
         <p className="mt-1 text-sm capitalize text-vinho-muted">
-          {format(agora, "EEEE, d 'de' MMMM", { locale: ptBR })}
+          {fmt(agora, "EEEE, d 'de' MMMM")}
         </p>
       </header>
 
@@ -95,16 +88,14 @@ export default async function DashboardPage() {
           <ul className="divide-y divide-vinho-borda">
             {agenda.map((a) => (
               <li key={a.id} className="flex items-center gap-4 py-3">
-                <span className="w-12 font-titulo text-lg font-semibold">{format(new Date(a.inicio), "HH:mm")}</span>
+                <span className="w-12 font-titulo text-lg font-semibold">{fmt(a.inicio, "HH:mm")}</span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{a.clientes?.nome ?? "—"}</p>
                   <p className="truncate text-xs text-vinho-muted">
                     {[a.procedimentos?.nome, a.profissionais?.nome].filter(Boolean).join(" · ") || "Sem procedimento"}
                   </p>
                 </div>
-                <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${STATUS[a.status].cor}`}>
-                  {STATUS[a.status].rotulo}
-                </span>
+                <StatusBadge status={a.status} />
               </li>
             ))}
           </ul>

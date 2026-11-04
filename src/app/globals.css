@@ -1,12 +1,13 @@
 @import "tailwindcss";
 
 :root {
+  /* As duas cores-base vêm da marca (layout.tsx); o resto é derivado. */
   --vinho-escuro: #2d0a1e;
   --vinho-acao: #7d1635;
-  --vinho-medio: #c07090;
-  --vinho-fundo: #fbf3f6;
-  --vinho-borda: #f0d8e2;
-  --vinho-muted: #9e7080;
+  --vinho-medio: color-mix(in srgb, var(--vinho-acao) 55%, white);
+  --vinho-fundo: color-mix(in srgb, var(--vinho-acao) 4%, white);
+  --vinho-borda: color-mix(in srgb, var(--vinho-acao) 16%, white);
+  --vinho-muted: color-mix(in srgb, var(--vinho-escuro) 45%, #b0a0a8);
 }
 
 @theme inline {
@@ -34,4 +35,21 @@ body {
 }
 .cartao {
   @apply rounded-xl border border-vinho-borda bg-white p-5;
+}
+.cartao-lista {
+  @apply overflow-visible rounded-xl border border-vinho-borda bg-white;
+}
+
+.botao-sec {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg border border-vinho-borda bg-white px-4 py-2 text-sm text-vinho-escuro transition hover:border-vinho-medio;
+}
+
+.print-only { display: none; }
+@media print {
+  aside, header.md\:hidden, .no-print { display: none !important; }
+  main { margin: 0 !important; padding: 0 !important; }
+  body { background: white; }
+  .print-only { display: block; }
+  span.print-only { display: inline; }
+  .print-area { border: none; }
 }
