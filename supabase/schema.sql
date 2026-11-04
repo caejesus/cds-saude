@@ -99,8 +99,11 @@ create table public.evolucoes (           -- anotações de prontuário por aten
   criado_em timestamptz default now()
 );
 
+create sequence public.lancamentos_numero_seq;
+
 create table public.lancamentos (         -- financeiro: entradas e saídas
   id uuid default uuid_generate_v4() primary key,
+  numero bigint not null default nextval('public.lancamentos_numero_seq'),  -- 001, 002... na ordem de criação
   clinica_id uuid references public.clinicas(id) on delete cascade not null,
   tipo text not null check (tipo in ('entrada','saida')),
   descricao text not null,
@@ -114,8 +117,11 @@ create table public.lancamentos (         -- financeiro: entradas e saídas
   origem_tipo text,                       -- 'plano_tratamento' | 'pacote' | null
   origem_id uuid,
   categoria text,                         -- ex.: Procedimentos, Aluguel, Produtos
+  criado_por uuid references public.usuarios(id) on delete set null default auth.uid(),
   criado_em timestamptz default now()
 );
+alter sequence public.lancamentos_numero_seq owned by public.lancamentos.numero;
+create unique index lancamentos_numero_uidx on public.lancamentos (numero);
 create index on public.lancamentos (clinica_id, vencimento);
 create index lancamentos_pago_em_idx on public.lancamentos (clinica_id, pago_em);
 create index lancamentos_agendamento_idx on public.lancamentos (agendamento_id);

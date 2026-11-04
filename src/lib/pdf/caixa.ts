@@ -1,4 +1,5 @@
-import { A4, cabecalho, MARGEM, novoDocumento, rodape, titulo, UTIL, limpar, type ClinicaPdf } from "./base";
+import { A4, brlPdf, cabecalho, MARGEM, novoDocumento, rodape, titulo, UTIL, VERDE, VERMELHO, limpar, type ClinicaPdf } from "./base";
+import { planilhaMovimentos, resumo, type MovimentoPdf } from "./movimentos";
 
 export type DadosCaixaPdf = {
   clinica: ClinicaPdf;
@@ -6,10 +7,8 @@ export type DadosCaixaPdf = {
   geradoEm: string;
   responsavel: string;
   porForma: { forma: string; entra: number; sai: number }[];
-  itens: { descricao: string; cliente: string | null; forma: string; tipo: "entrada" | "saida"; valor: number }[];
+  itens: MovimentoPdf[];
 };
-
-const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 export async function gerarCaixaPdf(d: DadosCaixaPdf) {
   const doc = await novoDocumento();
@@ -17,74 +16,32 @@ export async function gerarCaixaPdf(d: DadosCaixaPdf) {
   let y = topo();
   y = titulo(doc, `Fechamento de caixa · ${d.data}`, y);
 
-  const linha = (yy: number) => {
-    doc.setDrawColor(220, 220, 220);
-    doc.line(MARGEM, yy, MARGEM + UTIL, yy);
-  };
-  const xFim = MARGEM + UTIL;
+  const entra = d.porForma.reduce((t, f) => t + f.entra, 0);
+  const sai = d.porForma.reduce((t, f) => t + f.sai, 0);
+  y = resumo(doc, [
+    { rotulo: "Entradas", valor: entra, cor: VERDE },
+    { rotulo: "Saídas", valor: sai, cor: VERMELHO },
+    { rotulo: "Saldo do dia", valor: entra - sai },
+  ], y);
 
-  // Resumo por forma de pagamento
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.text("Forma de pagamento", MARGEM, y);
-  doc.text("Entradas", xFim - 40, y, { align: "right" });
-  doc.text("Saídas", xFim, y, { align: "right" });
-  y += 2;
-  linha(y);
-  y += 5;
+  // Totais por forma de pagamento (linha compacta)
   doc.setFont("helvetica", "normal");
-  let entra = 0;
-  let sai = 0;
-  for (const f of d.porForma) {
-    doc.text(limpar(f.forma), MARGEM, y);
-    doc.text(f.entra ? brl(f.entra) : "-", xFim - 40, y, { align: "right" });
-    doc.text(f.sai ? brl(f.sai) : "-", xFim, y, { align: "right" });
-    entra += f.entra;
-    sai += f.sai;
-    y += 2;
-    linha(y);
-    y += 5;
-  }
-  doc.setFont("helvetica", "bold");
-  doc.text("Totais", MARGEM, y);
-  doc.text(brl(entra), xFim - 40, y, { align: "right" });
-  doc.text(brl(sai), xFim, y, { align: "right" });
-  y += 8;
-  doc.setFontSize(12);
-  doc.text(`Saldo do dia: ${brl(entra - sai)}`, xFim, y, { align: "right" });
-  y += 12;
-
-  // Movimentos
-  doc.setFontSize(10);
-  doc.text("Movimentos", MARGEM, y);
+  doc.setFontSize(8);
+  doc.setTextColor(90, 90, 90);
+  const formas = d.porForma.map((f) => `${f.forma}: ${brlPdf(f.entra - f.sai)}`).join("   ·   ");
+  doc.text(limpar(formas || "Sem movimentos"), MARGEM, y - 2);
+  doc.setTextColor(30, 30, 30);
   y += 2;
-  linha(y);
-  y += 5;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  for (const it of d.itens) {
-    if (y > A4.altura - 45) {
-      doc.addPage();
-      y = topo();
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-    }
-    const desc = limpar([it.descricao, it.cliente].filter(Boolean).join(" · "));
-    const linhas: string[] = doc.splitTextToSize(desc, UTIL - 70);
-    doc.text(linhas, MARGEM, y);
-    doc.text(limpar(it.forma), xFim - 40, y, { align: "right" });
-    doc.text(`${it.tipo === "saida" ? "- " : ""}${brl(it.valor)}`, xFim, y, { align: "right" });
-    y += linhas.length * 4 + 1.5;
-    linha(y - 2.5);
-    y += 2;
-  }
 
-  // Conferência
-  if (y > A4.altura - 55) {
+  y = planilhaMovimentos(doc, d.clinica, y, d.itens, false);
+
+  // Assinaturas
+  if (y > A4.altura - 50) {
     doc.addPage();
     y = topo();
   }
-  y += 18;
+  y += 20;
+  const xFim = MARGEM + UTIL;
   doc.setDrawColor(0, 0, 0);
   doc.line(MARGEM, y, MARGEM + 70, y);
   doc.line(xFim - 70, y, xFim, y);

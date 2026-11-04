@@ -5,10 +5,29 @@ import { brl, FORMAS } from "@/lib/formato";
 import { fmt, fmtData, hojeISO, limitesDoMes, mesValido, somarMeses } from "@/lib/tempo";
 import { LinhaLancamento, type LinhaFin } from "./LinhaLancamento";
 import { PdfCaixa } from "./PdfCaixa";
+import { PdfMovimentos } from "./PdfMovimentos";
+import type { MovimentoPdf } from "@/lib/pdf/movimentos";
 import { clinicaParaPdf } from "@/lib/pdf/clinica";
 
-const CAMPOS = "id, tipo, descricao, valor, categoria, forma_pagamento, vencimento, pago_em, status, cliente_id, clientes(nome)";
+const CAMPOS = "id, numero, tipo, descricao, valor, categoria, forma_pagamento, vencimento, pago_em, status, cliente_id, clientes(nome), usuarios(nome)";
 const soma = (l: LinhaFin[]) => l.reduce((t, x) => t + Number(x.valor), 0);
+
+function paraPdf(l: LinhaFin, hoje: string): MovimentoPdf {
+  const data = l.pago_em ?? l.vencimento;
+  const situacao =
+    l.status === "pago" ? "Pago" : l.status === "cancelado" ? "Cancelado" : l.vencimento && l.vencimento < hoje ? "Vencido" : "Pendente";
+  return {
+    numero: l.numero,
+    data: data ? fmtData(data) : "—",
+    usuario: l.usuarios?.nome ?? null,
+    descricao: l.descricao,
+    cliente: l.clientes?.nome ?? null,
+    tipo: l.tipo,
+    forma: l.forma_pagamento ? FORMAS[l.forma_pagamento] : null,
+    situacao,
+    valor: Number(l.valor),
+  };
+}
 
 export default async function FinanceiroPage({ searchParams }: { searchParams: Promise<{ mes?: string; filtro?: string }> }) {
   const sp = await searchParams;
@@ -117,13 +136,7 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: P
               responsavel={usuario.nome}
               arquivo={`caixa-${hoje}.pdf`}
               porForma={porForma.map((x) => ({ forma: FORMAS[x.f], entra: x.entra, sai: x.sai }))}
-              itens={caixa.map((l) => ({
-                descricao: l.descricao,
-                cliente: l.clientes?.nome ?? null,
-                forma: FORMAS[l.forma_pagamento ?? "outro"],
-                tipo: l.tipo,
-                valor: Number(l.valor),
-              }))}
+              itens={[...caixa].sort((a, b) => (a.numero ?? 0) - (b.numero ?? 0)).map((l) => paraPdf(l, hoje))}
             />
           </div>
           {porForma.length === 0 ? (
@@ -173,6 +186,16 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: P
       <section className="cartao-lista no-print">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-vinho-borda px-5 py-3">
           <h2 className="font-titulo text-xl font-semibold">Lançamentos do mês</h2>
+          <div className="flex flex-wrap items-center gap-2">
+          <PdfMovimentos
+            clinica={clinicaParaPdf(clinica)}
+            periodo={tituloMes}
+            filtro={filtros.find(([v]) => v === filtro)?.[1] ?? "Todos"}
+            geradoEm={fmt(new Date(), "dd/MM/yyyy 'às' HH:mm")}
+            usuario={usuario.nome}
+            arquivo={`movimentacoes-${mes}${filtro === "todos" ? "" : `-${filtro}`}.pdf`}
+            movimentos={[...lista].sort((a, b) => (a.numero ?? 0) - (b.numero ?? 0)).map((l) => paraPdf(l, hoje))}
+          />
           <nav className="flex flex-wrap gap-1">
             {filtros.map(([v, r]) => (
               <Link
@@ -184,6 +207,7 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: P
               </Link>
             ))}
           </nav>
+          </div>
         </div>
         {lista.length === 0 ? (
           <p className="p-8 text-center text-sm text-vinho-muted">Nenhum lançamento neste mês.</p>

@@ -6,6 +6,8 @@ import { mudarSituacao, pagarLancamento } from "./actions";
 
 export type LinhaFin = {
   id: string;
+  numero: number | null;
+  usuarios: { nome: string } | null;
   tipo: "entrada" | "saida";
   descricao: string;
   valor: number;
@@ -37,7 +39,10 @@ export function LinhaLancamento({ l, hoje }: { l: LinhaFin; hoje: string }) {
         <p className="text-[10px] uppercase text-vinho-muted">{data ? fmtData(data, "MMM") : ""}</p>
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{l.descricao}</p>
+        <p className="truncate text-sm font-medium">
+          <span className="mr-1.5 font-mono text-[11px] text-vinho-muted">{l.numero ? String(l.numero).padStart(3, "0") : ""}</span>
+          {l.descricao}
+        </p>
         <p className="truncate text-xs text-vinho-muted">
           {[
             l.clientes && l.cliente_id ? <Link key="c" href={`/clientes/${l.cliente_id}`} className="hover:text-vinho-acao hover:underline">{l.clientes.nome}</Link> : null,

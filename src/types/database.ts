@@ -88,6 +88,8 @@ export interface Agendamento {
 
 export interface Lancamento {
   id: string;
+  numero: number;
+  criado_por: string | null;
   clinica_id: string;
   tipo: "entrada" | "saida";
   descricao: string;

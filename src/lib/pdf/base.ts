@@ -145,3 +145,81 @@ export async function imagemComoDataUrl(url: string | null | undefined): Promise
     return null;
   }
 }
+
+export type Coluna = { titulo: string; largura: number; alinhar?: "left" | "right" | "center" };
+
+/**
+ * Tabela estilo planilha: cabeçalho na cor da marca (repetido a cada página),
+ * linhas zebradas e quebra de texto dentro da célula. Retorna o Y após a tabela.
+ */
+export function tabela(
+  doc: jsPDF,
+  colunas: Coluna[],
+  linhas: { celulas: string[]; cor?: [number, number, number][] }[],
+  y: number,
+  aoQuebrar: () => number,
+  corCabecalho: string,
+  tamanho = 8
+) {
+  const xs: number[] = [];
+  let x = MARGEM;
+  for (const c of colunas) {
+    xs.push(x);
+    x += c.largura;
+  }
+  const pad = 1.6;
+  const alturaLinha = tamanho * 0.42;
+
+  const desenharCabecalho = (yy: number) => {
+    doc.setFillColor(...rgb(corCabecalho));
+    doc.rect(MARGEM, yy, UTIL, 7, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(tamanho);
+    doc.setTextColor(255, 255, 255);
+    colunas.forEach((c, i) => {
+      const tx = c.alinhar === "right" ? xs[i] + c.largura - pad : c.alinhar === "center" ? xs[i] + c.largura / 2 : xs[i] + pad;
+      doc.text(c.titulo, tx, yy + 4.7, { align: c.alinhar ?? "left" });
+    });
+    doc.setTextColor(30, 30, 30);
+    return yy + 7;
+  };
+
+  y = desenharCabecalho(y);
+  doc.setFont("helvetica", "normal");
+  linhas.forEach((l, li) => {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(tamanho);
+    const partes = l.celulas.map((t, i) => doc.splitTextToSize(limpar(t ?? ""), colunas[i].largura - pad * 2) as string[]);
+    const h = Math.max(...partes.map((p) => p.length)) * alturaLinha + 3;
+    if (y + h > A4.altura - 22) {
+      doc.addPage();
+      y = desenharCabecalho(aoQuebrar());
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(tamanho);
+    }
+    if (li % 2 === 1) {
+      doc.setFillColor(247, 244, 246);
+      doc.rect(MARGEM, y, UTIL, h, "F");
+    }
+    partes.forEach((p, i) => {
+      const c = colunas[i];
+      const tx = c.alinhar === "right" ? xs[i] + c.largura - pad : c.alinhar === "center" ? xs[i] + c.largura / 2 : xs[i] + pad;
+      const cor = l.cor?.[i];
+      if (cor) doc.setTextColor(...cor);
+      doc.text(p, tx, y + 2 + alturaLinha * 0.85, { align: c.alinhar ?? "left" });
+      if (cor) doc.setTextColor(30, 30, 30);
+    });
+    y += h;
+    doc.setDrawColor(225, 220, 223);
+    doc.setLineWidth(0.15);
+    doc.line(MARGEM, y, MARGEM + UTIL, y);
+  });
+  doc.setDrawColor(0, 0, 0);
+  doc.setLineWidth(0.2);
+  return y;
+}
+
+export const VERDE: [number, number, number] = [21, 128, 61];
+export const VERMELHO: [number, number, number] = [185, 28, 28];
+export const brlPdf = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+export const numeroLancamento = (n: number | null | undefined) => (n ? String(n).padStart(3, "0") : "—");
