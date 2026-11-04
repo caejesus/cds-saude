@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+:root {
+  --vinho-escuro: #2d0a1e;
+  --vinho-acao: #7d1635;
+  --vinho-medio: #c07090;
+  --vinho-fundo: #fbf3f6;
+  --vinho-borda: #f0d8e2;
+  --vinho-muted: #9e7080;
+}
+
+@theme inline {
+  --color-vinho-escuro: var(--vinho-escuro);
+  --color-vinho-acao: var(--vinho-acao);
+  --color-vinho-medio: var(--vinho-medio);
+  --color-vinho-fundo: var(--vinho-fundo);
+  --color-vinho-borda: var(--vinho-borda);
+  --color-vinho-muted: var(--vinho-muted);
+  --font-titulo: var(--font-cormorant), Georgia, serif;
+  --font-corpo: var(--font-dm-sans), system-ui, sans-serif;
+}
+
+body {
+  background: var(--vinho-fundo);
+  color: var(--vinho-escuro);
+  font-family: var(--font-corpo);
+}
+
+.campo {
+  @apply w-full rounded-lg border border-vinho-borda bg-white px-3 py-2.5 text-sm outline-none transition focus:border-vinho-medio focus:ring-2 focus:ring-vinho-medio/20;
+}
+.botao {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg bg-vinho-acao px-5 py-2.5 text-sm font-medium text-white transition hover:bg-vinho-escuro disabled:opacity-60;
+}
+.cartao {
+  @apply rounded-xl border border-vinho-borda bg-white p-5;
+}
