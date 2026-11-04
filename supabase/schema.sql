@@ -135,12 +135,18 @@ create table public.whatsapp_mensagens (
   clinica_id uuid references public.clinicas(id) on delete cascade not null,
   cliente_id uuid references public.clientes(id) on delete cascade,
   template_id uuid references public.whatsapp_templates(id) on delete set null,
-  numero_destino text not null,
+  tipo text,
+  referencia_id uuid,                     -- agendamento, lançamento etc.
+  numero_destino text,
   mensagem text not null,
   status text default 'pendente' check (status in ('pendente','enviado','entregue','falhou')),
   enviado_em timestamptz,
   criado_em timestamptz default now()
 );
+
+create index whatsapp_mensagens_ref_idx on public.whatsapp_mensagens (clinica_id, tipo, referencia_id);
+create index whatsapp_mensagens_cliente_idx on public.whatsapp_mensagens (clinica_id, tipo, cliente_id, criado_em);
+create unique index whatsapp_templates_tipo_uidx on public.whatsapp_templates (clinica_id, tipo);
 
 -- =========================================================
 -- MÓDULO ODONTO

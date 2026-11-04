@@ -72,4 +72,5 @@ export async function mudarStatus(f: FormData) {
   revalidatePath("/agenda");
   revalidatePath("/dashboard");
   revalidatePath("/clientes", "layout");
+  revalidatePath("/whatsapp");
 }
