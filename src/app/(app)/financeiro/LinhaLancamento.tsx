@@ -2,6 +2,8 @@ import Link from "next/link";
 import { MoreHorizontal } from "lucide-react";
 import { brl, FORMAS } from "@/lib/formato";
 import { fmtData } from "@/lib/tempo";
+import { BotaoRecibo } from "@/components/pdf/BotaoRecibo";
+import type { ClinicaPdf } from "@/lib/pdf/base";
 import { mudarSituacao, pagarLancamento } from "./actions";
 
 export type LinhaFin = {
@@ -17,10 +19,17 @@ export type LinhaFin = {
   pago_em: string | null;
   status: "pendente" | "pago" | "cancelado";
   cliente_id: string | null;
-  clientes: { nome: string } | null;
+  clientes: { nome: string; cpf: string | null } | null;
 };
 
-export function LinhaLancamento({ l, hoje }: { l: LinhaFin; hoje: string }) {
+export type EmissorRecibo = { clinica: ClinicaPdf; emitidoPor: string; emitidoEm: string };
+
+const cpfFmt = (v: string | null) => {
+  const d = (v ?? "").replace(/\D/g, "");
+  return d.length === 11 ? `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}` : v;
+};
+
+export function LinhaLancamento({ l, hoje, emissor }: { l: LinhaFin; hoje: string; emissor: EmissorRecibo }) {
   const vencido = l.status === "pendente" && !!l.vencimento && l.vencimento < hoje;
   const data = l.status === "pago" ? l.pago_em : l.vencimento;
   const selo =
@@ -75,6 +84,20 @@ export function LinhaLancamento({ l, hoje }: { l: LinhaFin; hoje: string }) {
               </select>
               <button className="botao w-full py-1.5">{l.tipo === "entrada" ? "Receber hoje" : "Pagar hoje"}</button>
             </form>
+          )}
+          {l.tipo === "entrada" && l.status === "pago" && (
+            <BotaoRecibo
+              clinica={emissor.clinica}
+              numero={l.numero}
+              valor={Number(l.valor)}
+              cliente={l.clientes?.nome ?? "cliente"}
+              cpf={cpfFmt(l.clientes?.cpf ?? null)}
+              referente={l.descricao}
+              forma={l.forma_pagamento ? FORMAS[l.forma_pagamento] : null}
+              dataPagamento={l.pago_em ? fmtData(l.pago_em, "d 'de' MMMM 'de' yyyy") : ""}
+              emitidoPor={emissor.emitidoPor}
+              emitidoEm={emissor.emitidoEm}
+            />
           )}
           <form action={mudarSituacao}>
             <input type="hidden" name="id" value={l.id} />

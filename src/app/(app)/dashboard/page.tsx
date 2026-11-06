@@ -1,7 +1,11 @@
 import { AlertCircle, CalendarCheck, Users, Wallet } from "lucide-react";
 import { getContexto } from "@/lib/contexto";
 import { brl } from "@/lib/formato";
-import { agora as agoraLocal, fmt, hojeISO, limitesDoDia } from "@/lib/tempo";
+import { agora as agoraLocal, fmt, FUSO, hojeISO, limitesDoDia } from "@/lib/tempo";
+import { Suspense } from "react";
+import { Relogio } from "@/components/Relogio";
+import { Clima } from "@/components/Clima";
+import { AlertasDashboard } from "@/components/AlertasDashboard";
 import { StatusBadge } from "@/components/StatusBadge";
 import type { StatusAgendamento } from "@/types/database";
 
@@ -15,7 +19,7 @@ type AgendaHoje = {
 };
 
 export default async function DashboardPage() {
-  const { supabase, usuario } = await getContexto();
+  const { supabase, usuario, clinica } = await getContexto();
   const agora = agoraLocal();
   const hoje = hojeISO();
   const dia = limitesDoDia(hoje);
@@ -61,14 +65,24 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <header>
-        <h1 className="font-titulo text-3xl font-semibold sm:text-4xl">
-          {saudacao}, {primeiroNome}
-        </h1>
-        <p className="mt-1 text-sm capitalize text-vinho-muted">
-          {fmt(agora, "EEEE, d 'de' MMMM")}
-        </p>
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="font-titulo text-3xl font-semibold sm:text-4xl">
+            {saudacao}, {primeiroNome}
+          </h1>
+          <p className="mt-1 text-sm text-vinho-muted">{clinica.nome}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-8 gap-y-3 rounded-xl border border-vinho-borda bg-white px-5 py-3">
+          <Suspense fallback={null}>
+            <Clima cidade={clinica.cidade || "Manaus"} />
+          </Suspense>
+          <Relogio fuso={FUSO} />
+        </div>
       </header>
+
+      <Suspense fallback={null}>
+        <AlertasDashboard supabase={supabase} hoje={hoje} />
+      </Suspense>
 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
         {cards.map(({ rotulo, valor, icone: Icone }) => (

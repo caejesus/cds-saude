@@ -19,6 +19,7 @@ export type ClinicaPdf = {
   telefone?: string | null;
   corPrimaria: string;
   logo?: string | null; // dataURL
+  logoUrl?: string | null; // endereço da logo enviada em Configurações
 };
 
 export async function novoDocumento() {
@@ -159,8 +160,11 @@ export function tabela(
   y: number,
   aoQuebrar: () => number,
   corCabecalho: string,
-  tamanho = 8
+  tamanho = 8,
+  estilo: "zebra" | "grade" = "zebra"
 ) {
+  const fonte = estilo === "grade" ? "times" : "helvetica";
+  const grade = estilo === "grade";
   const xs: number[] = [];
   let x = MARGEM;
   for (const c of colunas) {
@@ -173,8 +177,13 @@ export function tabela(
   const desenharCabecalho = (yy: number) => {
     doc.setFillColor(...rgb(corCabecalho));
     doc.rect(MARGEM, yy, UTIL, 7, "F");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(tamanho);
+    if (grade) {
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(0.25);
+      colunas.forEach((c, i) => doc.rect(xs[i], yy, c.largura, 7, "S"));
+    }
+    doc.setFont(fonte, "bold");
+    doc.setFontSize(grade ? tamanho + 1 : tamanho);
     doc.setTextColor(255, 255, 255);
     colunas.forEach((c, i) => {
       const tx = c.alinhar === "right" ? xs[i] + c.largura - pad : c.alinhar === "center" ? xs[i] + c.largura / 2 : xs[i] + pad;
@@ -185,19 +194,19 @@ export function tabela(
   };
 
   y = desenharCabecalho(y);
-  doc.setFont("helvetica", "normal");
+  const tamCorpo = grade ? tamanho + 1 : tamanho;
   linhas.forEach((l, li) => {
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(tamanho);
+    doc.setFont(fonte, "normal");
+    doc.setFontSize(tamCorpo);
     const partes = l.celulas.map((t, i) => doc.splitTextToSize(limpar(t ?? ""), colunas[i].largura - pad * 2) as string[]);
     const h = Math.max(...partes.map((p) => p.length)) * alturaLinha + 3;
     if (y + h > A4.altura - 22) {
       doc.addPage();
       y = desenharCabecalho(aoQuebrar());
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(tamanho);
+      doc.setFont(fonte, "normal");
+      doc.setFontSize(tamCorpo);
     }
-    if (li % 2 === 1) {
+    if (!grade && li % 2 === 1) {
       doc.setFillColor(247, 244, 246);
       doc.rect(MARGEM, y, UTIL, h, "F");
     }
@@ -209,10 +218,17 @@ export function tabela(
       doc.text(p, tx, y + 2 + alturaLinha * 0.85, { align: c.alinhar ?? "left" });
       if (cor) doc.setTextColor(30, 30, 30);
     });
+    if (grade) {
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(0.25);
+      colunas.forEach((c, i) => doc.rect(xs[i], y, c.largura, h, "S"));
+    }
     y += h;
-    doc.setDrawColor(225, 220, 223);
-    doc.setLineWidth(0.15);
-    doc.line(MARGEM, y, MARGEM + UTIL, y);
+    if (!grade) {
+      doc.setDrawColor(225, 220, 223);
+      doc.setLineWidth(0.15);
+      doc.line(MARGEM, y, MARGEM + UTIL, y);
+    }
   });
   doc.setDrawColor(0, 0, 0);
   doc.setLineWidth(0.2);
@@ -223,3 +239,49 @@ export const VERDE: [number, number, number] = [21, 128, 61];
 export const VERMELHO: [number, number, number] = [185, 28, 28];
 export const brlPdf = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 export const numeroLancamento = (n: number | null | undefined) => (n ? String(n).padStart(3, "0") : "—");
+
+/**
+ * Cabeçalho de relatório no modelo "documento":
+ *   CDS GESTÃO DE CLÍNICAS
+ *   NOME DA CLÍNICA - CNPJ: ...
+ *   Endereço, Cidade/UF, telefone
+ */
+export function cabecalhoRelatorio(doc: jsPDF, c: ClinicaPdf) {
+  let x = MARGEM;
+  const y = 18;
+  if (c.logo) {
+    try {
+      const p = doc.getImageProperties(c.logo);
+      const h = 16;
+      const w = Math.min(40, (p.width / p.height) * h);
+      doc.addImage(c.logo, MARGEM, y - 6, w, h);
+      x = MARGEM + w + 5;
+    } catch {
+      /* segue sem logo */
+    }
+  }
+  doc.setFont("times", "bold");
+  doc.setFontSize(17);
+  doc.setTextColor(...rgb(c.corPrimaria));
+  const marcaTxt = limpar(c.marca);
+  doc.text(marcaTxt, x, y);
+  const wMarca = doc.getTextWidth(marcaTxt + " ");
+  doc.setTextColor(20, 20, 20);
+  if (c.subtitulo) doc.text(limpar(c.subtitulo.toUpperCase()), x + wMarca, y);
+
+  doc.setFontSize(11);
+  doc.text(limpar([c.nome.toUpperCase(), c.cnpj ? `CNPJ: ${c.cnpj}` : null].filter(Boolean).join(" - ")), x, y + 6);
+  doc.setFont("times", "normal");
+  doc.setFontSize(10);
+  const linha3 = [c.endereco, [c.cidade, c.estado].filter(Boolean).join("/"), c.telefone].filter(Boolean).join(", ");
+  if (linha3) doc.text(limpar(linha3), x, y + 11.5);
+  doc.setTextColor(30, 30, 30);
+  return y + 24;
+}
+
+export function tituloRelatorio(doc: jsPDF, texto: string, y: number) {
+  doc.setFont("times", "normal");
+  doc.setFontSize(15);
+  doc.text(limpar(texto), A4.largura / 2, y, { align: "center" });
+  return y + 6;
+}

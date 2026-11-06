@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Logo } from "@/components/Logo";
 import { buscarTermoPublico } from "@/lib/supabase/publico";
+import { marcaPublica } from "@/lib/supabase/marca";
 import { fmt } from "@/lib/tempo";
 import { Assinar } from "./Assinar";
 
@@ -8,14 +9,14 @@ export const metadata: Metadata = { title: "Assinatura de termo", robots: { inde
 
 export default async function AssinarPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  const termo = await buscarTermoPublico(token);
+  const [termo, { logo_url }] = await Promise.all([buscarTermoPublico(token), marcaPublica()]);
   const expirado = !!termo && !termo.aceito_em && !!termo.expira_em && new Date(termo.expira_em) < new Date();
 
   if (!termo || expirado) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-vinho-fundo px-4">
         <div className="max-w-sm space-y-3 rounded-2xl bg-white p-8 text-center shadow-sm">
-          <div className="flex justify-center"><Logo /></div>
+          <div className="flex justify-center"><Logo logoUrl={logo_url} /></div>
           <p className="font-titulo text-2xl font-semibold">{expirado ? "Link expirado" : "Link inválido"}</p>
           <p className="text-sm text-vinho-muted">Peça um novo link de assinatura para a clínica.</p>
         </div>
@@ -31,7 +32,7 @@ export default async function AssinarPage({ params }: { params: Promise<{ token:
     <main className="min-h-screen bg-vinho-fundo px-4 py-6 sm:py-10">
       <div className="mx-auto max-w-2xl space-y-5">
         <header className="flex flex-col items-center gap-1 text-center">
-          <Logo />
+          <Logo logoUrl={logo_url} />
           <p className="text-xs text-vinho-muted">{[termo.clinica.nome, termo.clinica.cidade].filter(Boolean).join(" · ")}</p>
         </header>
         <article className="rounded-2xl border border-vinho-borda bg-white p-5 shadow-sm sm:p-8">
@@ -47,7 +48,7 @@ export default async function AssinarPage({ params }: { params: Promise<{ token:
             </div>
           )}
         </article>
-        <Assinar token={token} termo={termo} assinadoEm={assinadoEm} cpf={cpf} />
+        <Assinar token={token} termo={termo} assinadoEm={assinadoEm} cpf={cpf} logoUrl={logo_url} />
         <p className="pb-6 text-center text-[11px] text-vinho-muted">
           Ao assinar, registramos data, hora, endereço IP e aparelho usado, como comprovação da assinatura eletrônica.
         </p>

@@ -12,7 +12,7 @@ export function PdfMovimentos(d: DadosMovimentosPdf & { arquivo: string }) {
       nome={d.arquivo}
       className="botao-sec py-1 text-xs"
       gerar={async () => {
-        const logo = await imagemComoDataUrl(marca.logo || null);
+        const logo = await imagemComoDataUrl(d.clinica.logoUrl || marca.logo || null);
         return gerarMovimentosPdf({ ...d, clinica: { ...d.clinica, logo } });
       }}
     />

@@ -1,10 +1,14 @@
 import { marca } from "@/lib/marca";
 
-export function Logo({ claro = false }: { claro?: boolean }) {
-  if (marca.logo) {
+/** Logo da clínica: a enviada em Configurações (logoUrl) ou a do deploy; sem logo, o nome. */
+export function Logo({ claro = false, logoUrl }: { claro?: boolean; logoUrl?: string | null }) {
+  const src = logoUrl || marca.logo;
+  if (src) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src={marca.logo} alt={marca.nome} className="h-12 w-auto max-w-[180px] object-contain" />
+      <span className={claro ? "inline-flex rounded-lg bg-white px-2.5 py-1.5" : "inline-flex"}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={src} alt={marca.nome} className="h-10 w-auto max-w-[160px] object-contain" />
+      </span>
     );
   }
   return (

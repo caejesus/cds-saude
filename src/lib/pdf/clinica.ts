@@ -14,4 +14,5 @@ export const clinicaParaPdf = (c: Clinica): ClinicaPdf => ({
   telefone: c.telefone,
   corPrimaria: marca.corPrimaria,
   logo: null,
+  logoUrl: c.logo_url,
 });

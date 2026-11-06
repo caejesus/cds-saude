@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AlertTriangle, ArrowLeft, CalendarPlus, FileSignature, MessageCircle, ShoppingBag, Wallet } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CalendarPlus, Camera, FileSignature, MessageCircle, ShoppingBag, Wallet } from "lucide-react";
 import { getContexto } from "@/lib/contexto";
 import { fmt, fmtData, hojeISO } from "@/lib/tempo";
-import { brl, idade, linkWhatsapp, telefoneBR } from "@/lib/formato";
+import { brl, FORMAS, idade, linkWhatsapp, telefoneBR } from "@/lib/formato";
+import { BotaoRecibo } from "@/components/pdf/BotaoRecibo";
+import { clinicaParaPdf } from "@/lib/pdf/clinica";
 import { StatusBadge } from "@/components/StatusBadge";
 import { BarraSessoes } from "@/components/BarraSessoes";
 import { Galeria, type Foto } from "./Galeria";
@@ -33,7 +35,7 @@ type Atendimento = {
 
 export default async function FichaClientePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { supabase, clinica } = await getContexto();
+  const { supabase, clinica, usuario } = await getContexto();
 
   const [
     { data: cliente },
@@ -71,11 +73,12 @@ export default async function FichaClientePage({ params }: { params: Promise<{ i
       .returns<{ id: string; descricao: string; valor: number; vencimento: string | null }[]>(),
     supabase
       .from("lancamentos")
-      .select("valor")
+      .select("id, numero, descricao, valor, pago_em, forma_pagamento")
       .eq("cliente_id", id)
       .eq("tipo", "entrada")
       .eq("status", "pago")
-      .returns<{ valor: number }[]>(),
+      .order("pago_em", { ascending: false })
+      .returns<{ id: string; numero: number; descricao: string; valor: number; pago_em: string | null; forma_pagamento: string | null }[]>(),
     supabase
       .from("pacotes_cliente")
       .select("id, sessoes_total, sessoes_usadas, valido_ate, status, criado_em, pacotes(nome)")
@@ -112,6 +115,8 @@ export default async function FichaClientePage({ params }: { params: Promise<{ i
   const faltas = (atendimentos ?? []).filter((a) => a.status === "faltou").length;
   const hoje = hojeISO();
   const totalPago = (pagos ?? []).reduce((t, l) => t + Number(l.valor), 0);
+  const dCpf = cliente.cpf?.replace(/\D/g, "") ?? "";
+  const cpfCliente = dCpf.length === 11 ? `${dCpf.slice(0, 3)}.${dCpf.slice(3, 6)}.${dCpf.slice(6, 9)}-${dCpf.slice(9)}` : cliente.cpf;
   const emAberto = (pendencias ?? []).reduce((t, l) => t + Number(l.valor), 0);
 
   return (
@@ -135,6 +140,12 @@ export default async function FichaClientePage({ params }: { params: Promise<{ i
               <MessageCircle size={16} /> WhatsApp
             </a>
           )}
+          <a href="#fotos" className="botao-sec">
+            <Camera size={16} /> Foto
+          </a>
+          <Link href={`/termos/novo?cliente=${cliente.id}`} className="botao-sec">
+            <FileSignature size={16} /> Termo
+          </Link>
           <Link href={`/agenda/novo?cliente=${cliente.id}`} className="botao">
             <CalendarPlus size={16} /> Agendar
           </Link>
@@ -281,7 +292,40 @@ export default async function FichaClientePage({ params }: { params: Promise<{ i
         </section>
       </div>
 
-      <section className="cartao">
+      {(pagos ?? []).length > 0 && (
+        <section className="cartao">
+          <h2 className="mb-3 font-titulo text-xl font-semibold">Pagamentos</h2>
+          <ul className="divide-y divide-vinho-borda">
+            {(pagos ?? []).slice(0, 12).map((l) => (
+              <li key={l.id} className="flex flex-wrap items-center gap-3 py-2">
+                <span className="font-mono text-[11px] text-vinho-muted">{String(l.numero).padStart(3, "0")}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm">{l.descricao}</p>
+                  <p className="text-xs text-vinho-muted">
+                    {[l.pago_em ? fmtData(l.pago_em, "dd/MM/yy") : null, l.forma_pagamento ? FORMAS[l.forma_pagamento] : null].filter(Boolean).join(" · ")}
+                  </p>
+                </div>
+                <span className="text-sm font-medium tabular-nums text-green-700">{brl(Number(l.valor))}</span>
+                <BotaoRecibo
+                  className="botao-sec py-1 text-xs"
+                  clinica={clinicaParaPdf(clinica)}
+                  numero={l.numero}
+                  valor={Number(l.valor)}
+                  cliente={cliente.nome}
+                  cpf={cpfCliente}
+                  referente={l.descricao}
+                  forma={l.forma_pagamento ? FORMAS[l.forma_pagamento] : null}
+                  dataPagamento={l.pago_em ? fmtData(l.pago_em, "d 'de' MMMM 'de' yyyy") : ""}
+                  emitidoPor={usuario.nome}
+                  emitidoEm={fmt(new Date(), "dd/MM/yyyy 'às' HH:mm")}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section id="fotos" className="cartao scroll-mt-20">
         <h2 className="mb-4 font-titulo text-xl font-semibold">Fotos de evolução</h2>
         <Galeria clinicaId={clinica.id} clienteId={cliente.id} fotos={fotos} />
       </section>

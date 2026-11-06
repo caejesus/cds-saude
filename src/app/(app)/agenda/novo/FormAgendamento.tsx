@@ -8,6 +8,7 @@ import { Mensagem } from "@/components/ui/Mensagem";
 import { brl } from "@/lib/formato";
 import type { Procedimento, Profissional } from "@/types/database";
 import { salvarAgendamento } from "../actions";
+import { DiaDoProfissional } from "./DiaDoProfissional";
 
 type ClienteOpcao = { id: string; nome: string; alergias: string | null };
 export type Inicial = {
@@ -21,11 +22,13 @@ export type Inicial = {
   observacoes?: string;
 };
 
-export function FormAgendamento({ clientes, profissionais, procedimentos, inicial }: {
+export function FormAgendamento({ clientes, profissionais, procedimentos, inicial, hoje, agoraMin }: {
   clientes: ClienteOpcao[];
   profissionais: Profissional[];
   procedimentos: Procedimento[];
   inicial: Inicial;
+  hoje: string;
+  agoraMin: number;
 }) {
   const [estado, acao] = useActionState(salvarAgendamento, undefined);
   const [clienteId, setClienteId] = useState(inicial.cliente_id ?? "");
@@ -34,6 +37,9 @@ export function FormAgendamento({ clientes, profissionais, procedimentos, inicia
     inicial.duracao ?? procedimentos.find((p) => p.id === inicial.procedimento_id)?.duracao_minutos ?? 60
   );
   const [filtro, setFiltro] = useState("");
+  const [profId, setProfId] = useState(inicial.profissional_id ?? (profissionais.length === 1 ? profissionais[0].id : ""));
+  const [data, setData] = useState(inicial.data);
+  const [hora, setHora] = useState(inicial.hora);
   const cliente = clientes.find((c) => c.id === clienteId);
   const conflito = estado?.erro?.startsWith("Conflito");
 
@@ -71,7 +77,7 @@ export function FormAgendamento({ clientes, profissionais, procedimentos, inicia
         )}
       </div>
 
-      <Selecao rotulo="Profissional" name="profissional_id" required defaultValue={inicial.profissional_id ?? (profissionais.length === 1 ? profissionais[0].id : "")}>
+      <Selecao rotulo="Profissional" name="profissional_id" required value={profId} onChange={(e) => setProfId(e.target.value)}>
         <option value="" disabled>Selecione</option>
         {profissionais.map((p) => (
           <option key={p.id} value={p.id}>{p.nome}</option>
@@ -96,11 +102,23 @@ export function FormAgendamento({ clientes, profissionais, procedimentos, inicia
         ))}
       </Selecao>
 
-      <Campo rotulo="Data" name="data" type="date" required defaultValue={inicial.data} />
+      <Campo rotulo="Data" name="data" type="date" required value={data} onChange={(e) => setData(e.target.value)} />
       <div className="grid grid-cols-2 gap-3">
-        <Campo rotulo="Horário" name="hora" type="time" step={300} required defaultValue={inicial.hora} />
+        <Campo rotulo="Horário" name="hora" type="time" step={300} required value={hora} onChange={(e) => setHora(e.target.value)} />
         <Campo rotulo="Duração (min)" name="duracao" type="number" min={5} max={600} step={5} required value={duracao} onChange={(e) => setDuracao(Number(e.target.value))} />
       </div>
+
+      <DiaDoProfissional
+        profissionalId={profId}
+        profissionalNome={profissionais.find((p) => p.id === profId)?.nome ?? ""}
+        data={data}
+        duracao={duracao}
+        hora={hora}
+        ignorarId={inicial.id}
+        hoje={hoje}
+        agoraMin={agoraMin}
+        onEscolher={setHora}
+      />
 
       <Area rotulo="Observações" name="observacoes" defaultValue={inicial.observacoes ?? ""} className="sm:col-span-2" />
 

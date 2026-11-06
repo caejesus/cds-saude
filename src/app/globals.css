@@ -25,6 +25,13 @@ body {
   background: var(--vinho-fundo);
   color: var(--vinho-escuro);
   font-family: var(--font-corpo);
+  font-variant-numeric: lining-nums;
+}
+
+/* Cormorant: algarismos alinhados e de largura fixa (sem o 3, 5, 7, 9 descendo). */
+.font-titulo {
+  font-variant-numeric: lining-nums tabular-nums;
+  font-feature-settings: "lnum" 1, "tnum" 1;
 }
 
 .campo {

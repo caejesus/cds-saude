@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getContexto } from "@/lib/contexto";
 import { Cabecalho } from "@/components/ui/Cabecalho";
-import { dataValida, fmt } from "@/lib/tempo";
+import { agora, dataValida, fmt, hojeISO } from "@/lib/tempo";
 import type { Agendamento, Procedimento, Profissional } from "@/types/database";
 import { FormAgendamento, type Inicial } from "./FormAgendamento";
 
@@ -56,7 +56,7 @@ export default async function NovoAgendamentoPage({ searchParams }: {
             antes de agendar.
           </p>
         ) : (
-          <FormAgendamento clientes={clientes ?? []} profissionais={profissionais ?? []} procedimentos={procedimentos ?? []} inicial={inicial} />
+          <FormAgendamento clientes={clientes ?? []} profissionais={profissionais ?? []} procedimentos={procedimentos ?? []} inicial={inicial} hoje={hojeISO()} agoraMin={agora().getHours() * 60 + agora().getMinutes()} />
         )}
       </section>
     </div>

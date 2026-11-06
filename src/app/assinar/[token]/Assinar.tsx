@@ -9,7 +9,7 @@ import { marca } from "@/lib/marca";
 import type { TermoPublico } from "@/lib/supabase/publico";
 import { enviarAssinaturaLink } from "./actions";
 
-export function Assinar({ token, termo, assinadoEm, cpf }: { token: string; termo: TermoPublico; assinadoEm: string | null; cpf: string | null }) {
+export function Assinar({ token, termo, assinadoEm, cpf, logoUrl }: { token: string; termo: TermoPublico; assinadoEm: string | null; cpf: string | null; logoUrl?: string | null }) {
   const router = useRouter();
   const [concordo, setConcordo] = useState(false);
   const [aberto, setAberto] = useState(false);
@@ -18,7 +18,7 @@ export function Assinar({ token, termo, assinadoEm, cpf }: { token: string; term
 
   async function baixar() {
     setBaixando(true);
-    const logo = await imagemComoDataUrl(marca.logo || null);
+    const logo = await imagemComoDataUrl(logoUrl || marca.logo || null);
     const doc = await gerarTermoPdf({
       clinica: { ...termo.clinica, marca: marca.nome, subtitulo: marca.subtitulo, corPrimaria: marca.corPrimaria, logo },
       titulo,

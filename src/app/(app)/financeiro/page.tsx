@@ -9,7 +9,7 @@ import { PdfMovimentos } from "./PdfMovimentos";
 import type { MovimentoPdf } from "@/lib/pdf/movimentos";
 import { clinicaParaPdf } from "@/lib/pdf/clinica";
 
-const CAMPOS = "id, numero, tipo, descricao, valor, categoria, forma_pagamento, vencimento, pago_em, status, cliente_id, clientes(nome), usuarios(nome)";
+const CAMPOS = "id, numero, tipo, descricao, valor, categoria, forma_pagamento, vencimento, pago_em, status, cliente_id, clientes(nome, cpf), usuarios(nome)";
 const soma = (l: LinhaFin[]) => l.reduce((t, x) => t + Number(x.valor), 0);
 
 function paraPdf(l: LinhaFin, hoje: string): MovimentoPdf {
@@ -79,6 +79,7 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: P
   ];
   const nomeMes = fmtData(`${mes}-01`, "MMMM 'de' yyyy");
   const tituloMes = nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1);
+  const emissor = { clinica: clinicaParaPdf(clinica), emitidoPor: usuario.nome, emitidoEm: fmt(new Date(), "dd/MM/yyyy 'às' HH:mm") };
 
   return (
     <div className="space-y-6">
@@ -175,7 +176,7 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: P
               </p>
               <ul className="-mx-5 mt-2 divide-y divide-vinho-borda">
                 {(vencidos ?? []).slice(0, 8).map((l) => (
-                  <LinhaLancamento key={l.id} l={l} hoje={hoje} />
+                  <LinhaLancamento key={l.id} l={l} hoje={hoje} emissor={emissor} />
                 ))}
               </ul>
             </>
@@ -214,7 +215,7 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: P
         ) : (
           <ul className="divide-y divide-vinho-borda">
             {lista.map((l) => (
-              <LinhaLancamento key={l.id} l={l} hoje={hoje} />
+              <LinhaLancamento key={l.id} l={l} hoje={hoje} emissor={emissor} />
             ))}
           </ul>
         )}

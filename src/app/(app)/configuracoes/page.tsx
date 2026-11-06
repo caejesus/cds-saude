@@ -2,6 +2,7 @@ import { getContexto } from "@/lib/contexto";
 import { Cabecalho } from "@/components/ui/Cabecalho";
 import type { Procedimento, Profissional } from "@/types/database";
 import { FormClinica } from "./Formularios";
+import { EnviarLogo } from "./EnviarLogo";
 import { ListaProcedimentos, ListaProfissionais } from "./Listas";
 
 export default async function ConfiguracoesPage() {
@@ -14,6 +15,11 @@ export default async function ConfiguracoesPage() {
   return (
     <div className="space-y-6">
       <Cabecalho titulo="Configurações" descricao="Dados da clínica, equipe e serviços oferecidos." />
+
+      <section className="cartao">
+        <h2 className="mb-4 font-titulo text-xl font-semibold">Logo</h2>
+        <EnviarLogo clinicaId={clinica.id} logoUrl={clinica.logo_url} podeEditar={usuario.perfil === "admin"} />
+      </section>
 
       <section className="cartao">
         <h2 className="mb-4 font-titulo text-xl font-semibold">Dados da clínica</h2>

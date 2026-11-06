@@ -12,7 +12,7 @@ export function PdfCaixa(d: DadosCaixaPdf & { arquivo: string }) {
       nome={d.arquivo}
       className="botao-sec py-1.5"
       gerar={async () => {
-        const logo = await imagemComoDataUrl(marca.logo || null);
+        const logo = await imagemComoDataUrl(d.clinica.logoUrl || marca.logo || null);
         return gerarCaixaPdf({ ...d, clinica: { ...d.clinica, logo } });
       }}
     />

@@ -74,3 +74,29 @@ export async function mudarStatus(f: FormData) {
   revalidatePath("/clientes", "layout");
   revalidatePath("/whatsapp");
 }
+
+/** Ocupação do profissional no dia (para mostrar horários livres no formulário). */
+export async function ocupacaoDoDia(profissionalId: string, data: string, ignorarId?: string) {
+  const { supabase } = await getContexto();
+  if (!profissionalId || !/^\d{4}-\d{2}-\d{2}$/.test(data)) return [];
+  const inicio = deLocal(data, "00:00");
+  const fim = new Date(inicio.getTime() + 86_400_000);
+  let q = supabase
+    .from("agendamentos")
+    .select("id, inicio, fim, status, clientes(nome), procedimentos(nome)")
+    .eq("profissional_id", profissionalId)
+    .not("status", "in", "(cancelado,faltou)")
+    .lt("inicio", fim.toISOString())
+    .gt("fim", inicio.toISOString())
+    .order("inicio");
+  if (ignorarId) q = q.neq("id", ignorarId);
+  const { data: itens } = await q.returns<{ id: string; inicio: string; fim: string; status: string; clientes: { nome: string } | null; procedimentos: { nome: string } | null }[]>();
+  return (itens ?? []).map((a) => ({
+    id: a.id,
+    inicio: fmt(a.inicio, "HH:mm"),
+    fim: fmt(a.fim, "yyyy-MM-dd") > data ? "23:59" : fmt(a.fim, "HH:mm"),
+    cliente: a.clientes?.nome ?? "Cliente",
+    procedimento: a.procedimentos?.nome ?? null,
+    status: a.status,
+  }));
+}

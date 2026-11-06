@@ -136,6 +136,12 @@ export function CartaoAgendamento({ a, cor, nomeClinica, financeiro, data, pacot
                 <button className="block w-full border-t border-vinho-borda px-3 py-1.5 text-left text-sm hover:bg-vinho-fundo">Desfazer baixa da sessão</button>
               </form>
             )}
+            {c && (
+              <>
+                <Link href={`/clientes/${c.id}#fotos`} className="block border-t border-vinho-borda px-3 py-1.5 text-sm hover:bg-vinho-fundo">Fotos antes/depois</Link>
+                <Link href={`/termos/novo?cliente=${c.id}`} className="block px-3 py-1.5 text-sm hover:bg-vinho-fundo">Termo de consentimento</Link>
+              </>
+            )}
             <Link href={`/agenda/novo?editar=${a.id}`} className="block border-t border-vinho-borda px-3 py-1.5 text-sm hover:bg-vinho-fundo">
               Remarcar / editar
             </Link>

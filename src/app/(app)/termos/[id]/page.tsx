@@ -61,7 +61,7 @@ export default async function TermoPage({ params }: { params: Promise<{ id: stri
       <article className="cartao space-y-6 sm:p-10">
         <header className="flex items-start justify-between gap-4 border-b border-vinho-borda pb-5">
           <div>
-            <Logo />
+            <Logo logoUrl={clinica.logo_url} />
             <p className="mt-2 text-xs text-vinho-muted">
               {[clinica.nome, clinica.cnpj && `CNPJ ${clinica.cnpj}`, clinica.endereco, clinica.cidade].filter(Boolean).join(" · ")}
             </p>

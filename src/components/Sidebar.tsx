@@ -39,7 +39,7 @@ function itensPara(tipo: TipoClinica): Item[] {
   ];
 }
 
-export function Sidebar({ tipo, nomeClinica, nomeUsuario }: { tipo: TipoClinica; nomeClinica: string; nomeUsuario: string }) {
+export function Sidebar({ tipo, nomeClinica, nomeUsuario, logoUrl }: { tipo: TipoClinica; nomeClinica: string; nomeUsuario: string; logoUrl?: string | null }) {
   const pathname = usePathname();
   const [aberto, setAberto] = useState(false);
   const itens = itensPara(tipo);
@@ -47,7 +47,7 @@ export function Sidebar({ tipo, nomeClinica, nomeUsuario }: { tipo: TipoClinica;
   const conteudo = (
     <div className="flex h-full flex-col px-4 py-6">
       <div className="mb-1 px-2">
-        <Logo claro />
+        <Logo claro logoUrl={logoUrl} />
       </div>
       <p className="mb-6 truncate px-2 text-xs text-white/50">{nomeClinica}</p>
       <nav className="flex-1 space-y-1">
@@ -82,7 +82,7 @@ export function Sidebar({ tipo, nomeClinica, nomeUsuario }: { tipo: TipoClinica;
   return (
     <>
       <header className="sticky top-0 z-30 flex items-center justify-between bg-vinho-escuro px-4 py-3 md:hidden">
-        <Logo claro />
+        <Logo claro logoUrl={logoUrl} />
         <button aria-label="Abrir menu" onClick={() => setAberto(true)} className="text-white">
           <Menu />
         </button>

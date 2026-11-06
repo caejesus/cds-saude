@@ -1,4 +1,4 @@
-import { A4, brlPdf, cabecalho, MARGEM, novoDocumento, numeroLancamento, rodape, tabela, titulo, UTIL, VERDE, VERMELHO, type ClinicaPdf, type Coluna } from "./base";
+import { A4, brlPdf, cabecalhoRelatorio, MARGEM, novoDocumento, numeroLancamento, rodape, tabela, tituloRelatorio, UTIL, VERDE, VERMELHO, type ClinicaPdf, type Coluna } from "./base";
 
 export type MovimentoPdf = {
   numero: number | null;
@@ -22,7 +22,7 @@ export function planilhaMovimentos(
   movimentos: MovimentoPdf[],
   comSituacao: boolean
 ) {
-  const topo = () => cabecalho(doc, clinica);
+  const topo = () => cabecalhoRelatorio(doc, clinica);
   const colunas: Coluna[] = comSituacao
     ? [
         { titulo: "Nº", largura: 11, alinhar: "center" },
@@ -55,10 +55,10 @@ export function planilhaMovimentos(
       ...(comSituacao ? [m.situacao ?? ""] : []),
       `${m.tipo === "saida" ? "- " : ""}${brlPdf(m.valor)}`,
     ];
-    const cor = celulas.map((_, i) => (i === 4 || i === celulas.length - 1 ? corTipo : undefined)) as [number, number, number][];
+    const cor = celulas.map((_, i) => (i === celulas.length - 1 ? corTipo : undefined)) as [number, number, number][];
     return { celulas, cor };
   });
-  return tabela(doc, colunas, linhas, y, topo, clinica.corPrimaria);
+  return tabela(doc, colunas, linhas, y, topo, clinica.corPrimaria, 8, "grade");
 }
 
 /** Caixas de resumo lado a lado (Entradas, Saídas, Saldo...). */
@@ -94,30 +94,61 @@ export type DadosMovimentosPdf = {
 
 export async function gerarMovimentosPdf(d: DadosMovimentosPdf) {
   const doc = await novoDocumento();
-  let y = cabecalho(doc, d.clinica);
-  y = titulo(doc, `Movimentações financeiras · ${d.periodo}`, y);
+  let y = cabecalhoRelatorio(doc, d.clinica);
+  y = tituloRelatorio(doc, `Movimentações Financeiras – ${d.periodo}`, y);
+  if (d.filtro !== "Todos") {
+    doc.setFont("times", "italic");
+    doc.setFontSize(9);
+    doc.text(`Filtro: ${d.filtro}`, A4.largura / 2, y, { align: "center" });
+    y += 4;
+  }
+  y += 2;
+  y = planilhaMovimentos(doc, d.clinica, y, d.movimentos, true);
+
   const validos = d.movimentos.filter((m) => m.situacao !== "Cancelado");
   const soma = (f: (m: MovimentoPdf) => boolean) => validos.filter(f).reduce((t, m) => t + m.valor, 0);
   const entradas = soma((m) => m.tipo === "entrada" && m.situacao === "Pago");
   const saidas = soma((m) => m.tipo === "saida" && m.situacao === "Pago");
   const aReceber = soma((m) => m.tipo === "entrada" && m.situacao !== "Pago");
-  y = resumo(
-    doc,
-    [
-      { rotulo: "Recebido", valor: entradas, cor: VERDE },
-      { rotulo: "Pago (despesas)", valor: saidas, cor: VERMELHO },
-      { rotulo: "Saldo realizado", valor: entradas - saidas },
-      { rotulo: "A receber", valor: aReceber },
-    ],
-    y
-  );
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  doc.setTextColor(110, 110, 110);
-  doc.text(`${d.movimentos.length} lançamentos · filtro: ${d.filtro}`, MARGEM, y - 2);
-  doc.setTextColor(30, 30, 30);
-  y = planilhaMovimentos(doc, d.clinica, y, d.movimentos, true);
-  void A4;
+  totais(doc, y + 6, [
+    ["Recebido", entradas, VERDE],
+    ["Pago (despesas)", saidas, VERMELHO],
+    ["Saldo realizado", entradas - saidas, undefined],
+    ["A receber", aReceber, undefined],
+  ], `${d.movimentos.length} lançamentos`);
   rodape(doc, `${d.clinica.nome}  ·  Gerado por ${d.usuario} em ${d.geradoEm}`);
   return doc;
+}
+
+/** Quadro de totais alinhado à direita, abaixo da tabela (mesmo estilo de grade). */
+export function totais(doc: Awaited<ReturnType<typeof novoDocumento>>, y: number, itens: [string, number, [number, number, number] | undefined][], nota?: string) {
+  const w1 = 38;
+  const w2 = 32;
+  const x = MARGEM + UTIL - w1 - w2;
+  if (y + itens.length * 6.5 > A4.altura - 22) {
+    doc.addPage();
+    y = 20;
+  }
+  doc.setDrawColor(0, 0, 0);
+  doc.setLineWidth(0.25);
+  itens.forEach(([rotulo, valor, cor], i) => {
+    const yy = y + i * 6.5;
+    doc.rect(x, yy, w1, 6.5, "S");
+    doc.rect(x + w1, yy, w2, 6.5, "S");
+    doc.setFont("times", "bold");
+    doc.setFontSize(9.5);
+    doc.setTextColor(30, 30, 30);
+    doc.text(rotulo, x + 1.6, yy + 4.4);
+    doc.setFont("times", "normal");
+    if (cor) doc.setTextColor(...cor);
+    doc.text(brlPdf(valor), x + w1 + w2 - 1.6, yy + 4.4, { align: "right" });
+  });
+  doc.setTextColor(110, 110, 110);
+  if (nota) {
+    doc.setFont("times", "italic");
+    doc.setFontSize(8.5);
+    doc.text(nota, MARGEM, y + 4.4);
+  }
+  doc.setTextColor(30, 30, 30);
+  return y + itens.length * 6.5;
 }

@@ -23,7 +23,7 @@ export function PdfTermo(p: {
       gerar={async () => {
         const [assinatura, logo] = await Promise.all([
           p.assinaturaUrl?.startsWith("data:") ? Promise.resolve(p.assinaturaUrl) : imagemComoDataUrl(p.assinaturaUrl),
-          imagemComoDataUrl(marca.logo || null),
+          imagemComoDataUrl(p.clinica.logoUrl || marca.logo || null),
         ]);
         return gerarTermoPdf({ ...p, clinica: { ...p.clinica, logo }, assinatura });
       }}

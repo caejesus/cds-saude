@@ -73,3 +73,15 @@ export async function alternarAtivo(f: FormData) {
   await supabase.from(tabela).update({ ativo: texto(f, "ativo") === "true" }).eq("id", id);
   revalidatePath("/configuracoes");
 }
+
+/** Grava (ou remove, com url = null) a logo enviada para o bucket público "marca". */
+export async function salvarLogo(url: string | null): Promise<string | void> {
+  const { supabase, clinica, usuario } = await getContexto();
+  if (usuario.perfil !== "admin") return "Só o administrador pode trocar a logo.";
+  if (url && !url.includes(`/storage/v1/object/public/marca/${clinica.id}/`)) return "Endereço de logo inválido.";
+  const antiga = clinica.logo_url?.split(`/marca/`)[1];
+  const { error } = await supabase.from("clinicas").update({ logo_url: url, atualizado_em: new Date().toISOString() }).eq("id", clinica.id);
+  if (error) return traduzErro(error.message);
+  if (antiga && antiga !== url?.split(`/marca/`)[1]) await supabase.storage.from("marca").remove([antiga]);
+  revalidatePath("/", "layout");
+}
